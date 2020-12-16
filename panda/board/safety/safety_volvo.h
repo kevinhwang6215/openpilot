@@ -165,7 +165,7 @@ const int ALLOWED_MSG_EUCD[] = {
 0x20A,
 0x220,
 0x235,
-//0x246, //PSCM1 from kevin fail 
+0x246, //PSCM1 from kevin 
 0x261,
 0x264,
 0x265,
