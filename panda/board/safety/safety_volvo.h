@@ -70,7 +70,7 @@ const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_UP = {
 };
 const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_DOWN = {
   {7., 17., 36.},
-  {4, .5, .15}
+  {3, .15, .1}     // {4, .5, .15}  old
 };
 
 struct sample_t volvo_angle_meas;  // last 3 steer angles
