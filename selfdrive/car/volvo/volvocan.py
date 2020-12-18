@@ -78,10 +78,10 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
     }
   elif car_fingerprint in PLATFORM.EUCD:
     values_static = {
-      "SET_X_22": 0x25, # Test these values: 0x24, 0x22
-      "SET_X_02": 0,    # Test 0x00, 0x02
+      "SET_X_22": 0x22, # Test these values: 0x24, 0x22
+      "SET_X_02": 0x02, # Test 0x00, 0x02
       "SET_X_10": 0x10, # Test 0x10, 0x1c, 0x18, 0x00
-      "SET_X_A4": 0xa7, # Test 0xa4, 0xa6, 0xa5, 0xe5, 0xe7
+      "SET_X_A4": 0xa4, # Test 0xa4, 0xa6, 0xa5, 0xe5, 0xe7
       #"SET_X_22": FSMInfo.SET_X_22,
       #"SET_X_02": FSMInfo.SET_X_02,
       #"SET_X_10": FSMInfo.SET_X_10,
