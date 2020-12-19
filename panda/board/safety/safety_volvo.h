@@ -66,11 +66,11 @@ const int VOLVO_MIN_ANGLE_REQ = -8190;                  // 14 bits long, min -81
 
 const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_UP = {
   {7., 17., 36.},  // 25.2, 61.2, 129.6 km/h
-  {3, .15, .1}
+  {4, .5, .15}  // {3, .15, .1}  from test 
 };
 const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_DOWN = {
   {7., 17., 36.},
-  {3, .15, .1}     // {4, .5, .15}  old
+  {4, .5, .15}     // {4, .5, .15}  from test 
 };
 
 struct sample_t volvo_angle_meas;  // last 3 steer angles
