@@ -59,6 +59,7 @@ float volvo_speed = 0;
 
 // safety params
 const float DEG_TO_CAN_VOLVO_C1 = 1/0.04395;            // 22.75312855517634‬, inverse of dbc scaling
+const float DEG_TO_CAN_VOLVO_EUCD = 1/0.04395; 
 const int VOLVO_MAX_DELTA_OFFSET_ANGLE = 20/0.04395-1;  // max degrees divided by k factor in dbc 0.04395. -1 to give a little safety margin. 
                                                         // 25 degrees allowed, more will trigger disengage by servo.
 const int VOLVO_MAX_ANGLE_REQ = 8189;                   // max, min angle req, set at 2steps from max and min values.
@@ -214,7 +215,7 @@ const int ALLOWED_MSG_EUCD[] = {
 0x764, // Diagnostic messages
 0x7df, // Diagnostic messages
 };
-
+0x130,    // BCM critical for ACC 
 
 //const int ALLOWED_MSG_C1_LEN = sizeof(ALLOWED_MSG_C1) / sizeof(ALLOWED_MSG_C1[0]);
 const int ALLOWED_MSG_EUCD_LEN = sizeof(ALLOWED_MSG_EUCD) / sizeof(ALLOWED_MSG_EUCD[0]);
@@ -282,7 +283,7 @@ static void volvo_init(int16_t param) {
   giraffe_forward_camera_volvo = 0;
 }
 
-
+//---------------------------volvo c1 to push ------------------------//
 static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 
   int bus = GET_BUS(to_push);
@@ -389,7 +390,7 @@ static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   return valid;
 }
 
-
+//---------------------------volvo EUCD to push ------------------------//
 static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   
   int bus = GET_BUS(to_push);
@@ -414,7 +415,18 @@ static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       }
       acc_active_prev_volvo = acc_active;
     }
+    
+    // Current steering angle
+      if (addr == MSG_PSCM1_VOLVO_V60) {
+        // 2bytes long. 
+        int angle_meas_new = (GET_BYTE(to_push, 5) << 8) | (GET_BYTE(to_push, 6));
+        // Remove offset. 
+        angle_meas_new = angle_meas_new-32768;
 
+        // update array of samples
+        update_sample(&volvo_angle_meas, angle_meas_new);
+      }
+    
     // Disengage when accelerator pedal pressed
     if( (addr == MSG_ACC_PEDAL_VOLVO_V60) && (bus == 0) ) {
       int acc_ped_val = ((GET_BYTE(to_push, 2) & 0x03) << 8) | GET_BYTE(to_push, 3);
@@ -437,6 +449,7 @@ static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   return valid;
 }
 
+//--------------------------volvo c1 to send-------------------------------------//
 
 static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
@@ -508,7 +521,7 @@ static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-
+//--------------------------volvo EUCD to send-------------------------------------//
 static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
   int tx = 1;
@@ -521,10 +534,63 @@ static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     tx = 0;
   }
 
+  if ( addr == MSG_FSM1_VOLVO_EUCD ) {
+    int desired_angle = ((GET_BYTE(to_send, 4) & 0x3f) << 8) | (GET_BYTE(to_send, 5)); // 14 bits long
+    bool lka_active = (GET_BYTE(to_send, 7) & 0x3) > 0;  // Steer direction bigger than 0, commanding lka to steer 
+
+    // remove offset 
+    desired_angle = desired_angle-8192;
+
+    if (controls_allowed && lka_active) {
+      // add 1 to not false trigger the violation
+      float delta_angle_float;
+      delta_angle_float = (interpolate(VOLVO_LOOKUP_ANGLE_RATE_UP, volvo_speed) * DEG_TO_CAN_VOLVO_EUCD) + 1.;
+      int delta_angle_up = (int)(delta_angle_float);
+      delta_angle_float =  (interpolate(VOLVO_LOOKUP_ANGLE_RATE_DOWN, volvo_speed) * DEG_TO_CAN_VOLVO_EUCD) + 1.;
+      int delta_angle_down = (int)(delta_angle_float);
+      int highest_desired_angle = volvo_desired_angle_last + ((volvo_desired_angle_last > 0) ? delta_angle_up : delta_angle_down);
+      int lowest_desired_angle = volvo_desired_angle_last - ((volvo_desired_angle_last >= 0) ? delta_angle_down : delta_angle_up);
+
+      // max request offset from actual angle
+      int hi_angle_req = MIN(desired_angle + VOLVO_MAX_DELTA_OFFSET_ANGLE, VOLVO_MAX_ANGLE_REQ);
+      int lo_angle_req = MAX(desired_angle - VOLVO_MAX_DELTA_OFFSET_ANGLE, VOLVO_MIN_ANGLE_REQ);
+    
+      // check for violation;
+      violation |= max_limit_check(desired_angle, highest_desired_angle, lowest_desired_angle);
+      violation |= max_limit_check(desired_angle, hi_angle_req, lo_angle_req);
+    }
+    volvo_desired_angle_last = desired_angle;
+
+    // desired steer angle should be the same as steer angle measured when controls are off
+    // dont check when outside of measurable range. desired_angle can only be -8192->8191 (+-360).
+    if ((!controls_allowed) 
+          && ((volvo_angle_meas.min - 1) >= VOLVO_MAX_ANGLE_REQ) 
+          && ((volvo_angle_meas.max + 1) <= VOLVO_MIN_ANGLE_REQ) 
+          && ((desired_angle < (volvo_angle_meas.min - 1)) || (desired_angle > (volvo_angle_meas.max + 1)))) {
+      violation = 1;
+    }
+
+    // no lka_enabled bit if controls not allowed
+    if (!controls_allowed && lka_active) {
+      violation = 1;
+    }
+  }
+
+  // acc button check, only allow cancel button to be sent
+  if (addr == MSG_BTNS_VOLVO_V60) {
+    // Violation if any button other than cancel is pressed
+    violation |= ((GET_BYTE(to_send, 7) & 0xef) > 0) | (GET_BYTE(to_send, 6) > 0);
+  }
+
+  if (violation) {
+    controls_allowed = 0;
+    tx = 0;
+  }
+  
   return tx;
 }
 
-
+//--------------------------volvo C1 to fwd-------------------------------------//
 static int volvo_c1_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   
   int bus_fwd = -1; // fallback to do not forward  
@@ -551,7 +617,7 @@ static int volvo_c1_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   return bus_fwd;
 }
 
-
+//--------------------------volvo EUCD to fwd-------------------------------------//
 static int volvo_eucd_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   
   int bus_fwd = -1; // fallback to do not forward
