@@ -68,7 +68,7 @@ const int VOLVO_MIN_ANGLE_REQ = -8190;                  // 14 bits long, min -81
 
 const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_UP = {
   {7., 17., 36.},  // 25.2, 61.2, 129.6 km/h
-  {4, .5, .15}  // {3, .15, .1}  from test 
+  {3, .15, .1}  // {3, .15, .1}  from test 
 };
 const struct lookup_t VOLVO_LOOKUP_ANGLE_RATE_DOWN = {
   {7., 17., 36.},
