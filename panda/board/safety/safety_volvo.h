@@ -56,6 +56,7 @@ float volvo_speed = 0;
 #define MSG_PSCM1_VOLVO_V60 0x246
 #define MSG_ACC_PEDAL_VOLVO_V60 0x20 // Gas pedal
 #define MSG_BTNS_VOLVO_V60 0x127     // Steering wheel buttons
+#define MSG_SPEED_VOLVO_v60 0x130    // Speed signal  test 
 
 // safety params
 const float DEG_TO_CAN_VOLVO_C1 = 1/0.04395;            // 22.75312855517634‬, inverse of dbc scaling
@@ -214,8 +215,8 @@ const int ALLOWED_MSG_EUCD[] = {
 0x581,
 0x764, // Diagnostic messages
 0x7df, // Diagnostic messages
-};
 0x130,    // BCM critical for ACC 
+};
 
 //const int ALLOWED_MSG_C1_LEN = sizeof(ALLOWED_MSG_C1) / sizeof(ALLOWED_MSG_C1[0]);
 const int ALLOWED_MSG_EUCD_LEN = sizeof(ALLOWED_MSG_EUCD) / sizeof(ALLOWED_MSG_EUCD[0]);
@@ -325,7 +326,7 @@ static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       if (addr == MSG_SPEED_VOLVO_C1) {
         // Factor 0.01
         volvo_speed = ((GET_BYTE(to_push, 3) << 8) | (GET_BYTE(to_push, 4))) * 0.01 / 3.6;
-        //vehicle_moving = volvo_speed > 0.;
+        //vehicle_moving = volvo_speed > 0.;C1
       }
 
       // Disengage when accelerator pedal pressed
@@ -425,6 +426,12 @@ static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 
         // update array of samples
         update_sample(&volvo_angle_meas, angle_meas_new);
+      }
+     // Get current speed
+      if (addr == MSG_SPEED_VOLVO_v60) {
+        // Factor 0.01
+        volvo_speed = ((GET_BYTE(to_push, 3) << 8) | (GET_BYTE(to_push, 4))) * 0.01 / 3.6;
+        //vehicle_moving = volvo_speed > 0.;
       }
     
     // Disengage when accelerator pedal pressed
