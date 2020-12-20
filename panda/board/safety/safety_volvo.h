@@ -284,7 +284,7 @@ static void volvo_init(int16_t param) {
   giraffe_forward_camera_volvo = 0;
 }
 
-//---------------------------volvo c1 to push ------------------------//
+//---------------------------volvo c1 to push ------------------------
 static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 
   int bus = GET_BUS(to_push);
@@ -391,7 +391,7 @@ static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   return valid;
 }
 
-//---------------------------volvo EUCD to push ------------------------//
+//---------------------------volvo EUCD to push ------------------------
 static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   
   int bus = GET_BUS(to_push);
@@ -456,7 +456,7 @@ static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   return valid;
 }
 
-//--------------------------volvo c1 to send-------------------------------------//
+//--------------------------volvo c1 to send-------------------------------------
 
 static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
@@ -528,7 +528,7 @@ static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-//--------------------------volvo EUCD to send-------------------------------------//
+//--------------------------volvo EUCD to send-------------------------------------
 static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
   int tx = 1;
@@ -597,7 +597,7 @@ static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-//--------------------------volvo C1 to fwd-------------------------------------//
+//--------------------------volvo C1 to fwd-------------------------------------
 static int volvo_c1_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   
   int bus_fwd = -1; // fallback to do not forward  
@@ -624,7 +624,7 @@ static int volvo_c1_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   return bus_fwd;
 }
 
-//--------------------------volvo EUCD to fwd-------------------------------------//
+//--------------------------volvo EUCD to fwd-------------------------------------
 static int volvo_eucd_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   
   int bus_fwd = -1; // fallback to do not forward
