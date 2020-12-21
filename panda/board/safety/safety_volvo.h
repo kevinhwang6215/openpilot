@@ -56,7 +56,7 @@ float volvo_speed = 0;
 #define MSG_PSCM1_VOLVO_V60 0x246
 #define MSG_ACC_PEDAL_VOLVO_V60 0x20 // Gas pedal
 #define MSG_BTNS_VOLVO_V60 0x127     // Steering wheel buttons
-#define MSG_SPEED_VOLVO_v60 0x130    // Speed signal  test 
+#define MSG_SPEED_VOLVO_V60 0x130    // Speed signal  test 
 
 // safety params
 const float DEG_TO_CAN_VOLVO_C1 = 1/0.04395;            // 22.75312855517634‬, inverse of dbc scaling
@@ -256,6 +256,7 @@ AddrCheckStruct volvo_c1_rx_checks[] = {
 };
 
 AddrCheckStruct volvo_eucd_rx_checks[] = {
+  {.msg = {{MSG_FSM1_VOLVO_V60,       2, 8,  .check_checksum = false, .expected_timestep = 20000U}}},
   {.msg = {{MSG_PSCM1_VOLVO_V60,      0, 8,  .check_checksum = false, .expected_timestep = 20000U}}},
   {.msg = {{MSG_FSM0_VOLVO_V60,       2, 8,  .check_checksum = false, .expected_timestep = 10000U}}},
   {.msg = {{MSG_ACC_PEDAL_VOLVO_V60,  0, 8,  .check_checksum = false, .expected_timestep = 10000U}}},
@@ -532,6 +533,9 @@ static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
   int tx = 1;
+  int addr = GET_ADDR(to_send);
+  bool violation = 0;
+  
 
   if ( !msg_allowed(to_send, VOLVO_EUCD_TX_MSGS, VOLVO_EUCD_TX_MSGS_LEN) ) {
     tx = 0;
@@ -541,7 +545,7 @@ static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     tx = 0;
   }
 
-  if ( addr == MSG_FSM1_VOLVO_EUCD ) {
+  if ( addr == MSG_FSM1_VOLVO_v60 ) {
     int desired_angle = ((GET_BYTE(to_send, 4) & 0x3f) << 8) | (GET_BYTE(to_send, 5)); // 14 bits long
     bool lka_active = (GET_BYTE(to_send, 7) & 0x3) > 0;  // Steer direction bigger than 0, commanding lka to steer 
 
